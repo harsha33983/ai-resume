@@ -2,7 +2,10 @@
 export async function POST(req: Request) {
   try {
     const contentType = req.headers.get("content-type") || ""
-    const backendUrl = process.env.RESUME_BACKEND_URL || "http://localhost:8000"
+    const isProd = process.env.NODE_ENV === "production"
+    const backendUrl = isProd
+      ? "https://" + process.env.VERCEL_URL + "/api/py"
+      : "http://127.0.0.1:8000"
 
     if (contentType.includes("application/json")) {
       // Handle Text Paste

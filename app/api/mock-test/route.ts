@@ -6,7 +6,10 @@ export async function POST(req: Request) {
     const { role, seniority, missingSkills } = body
 
     // Proxy to Python Backend
-    const backendUrl = "http://127.0.0.1:8000/mock-test"
+    const isProd = process.env.NODE_ENV === "production"
+    const backendUrl = isProd
+      ? "https://" + process.env.VERCEL_URL + "/api/py/mock-test"
+      : "http://127.0.0.1:8000/mock-test"
 
     const response = await fetch(backendUrl, {
       method: "POST",
