@@ -3,10 +3,13 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
     try {
         const body = await req.json().catch(() => ({}));
-        const isProd = process.env.NODE_ENV === "production"
-        const backendUrl = isProd
-            ? "https://" + process.env.VERCEL_URL + "/api/py"
-            : "http://127.0.0.1:8000"
+        let backendBase = "http://127.0.0.1:8000"
+        if (process.env.VERCEL_URL) {
+            backendBase = `https://${process.env.VERCEL_URL}/api/py`
+        } else if (process.env.NEXT_PUBLIC_VERCEL_URL) {
+            backendBase = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}/api/py`
+        }
+        const backendUrl = process.env.RESUME_BACKEND_URL || backendBase
 
         console.log(`Forwarding interview prep request to ${backendUrl}/interview-prep for role: ${body.role}`)
 
