@@ -2,6 +2,11 @@ import os
 import uuid
 import shutil
 import logging
+import sys
+
+# Ensure the current directory is in sys.path for relative imports on Vercel
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from typing import Dict
 from fastapi import FastAPI, File, UploadFile, HTTPException, status, Body
 from pydantic import BaseModel
@@ -18,7 +23,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Resume Parser Backend")
+# Detect if running on Vercel to set root_path
+# Vercel doesn't set a specific env var for "is vercel" easily accessible for root_path logic
+# but we can check if we are behind a proxy or just default it if NODE_ENV is production-like
+is_vercel = os.environ.get("VERCEL") == "1"
+root_path = "/api/py" if is_vercel else ""
+
+app = FastAPI(title="Resume Parser Backend", root_path=root_path)
 
 # CORS Middleware for Next.js
 # Allowing all origins for development convenience, but this should be restricted in production.

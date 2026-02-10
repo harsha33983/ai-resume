@@ -1,0 +1,14 @@
+{
+    "builds": [
+        {
+            "src": "resume-backend/main.py",
+            "use": "@vercel/python"
+        }
+    ],
+    "rewrites": [
+        {
+            "source": "/api/py/(.*)",
+            "destination": "/resume-backend/main.py"
+        }
+    ]
+}
