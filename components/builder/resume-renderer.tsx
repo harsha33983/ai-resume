@@ -33,9 +33,9 @@ export function ResumeRenderer({ data, config, scale = 1 }: Props) {
           </SectionWrapper>
         ) : null
       case "experience":
-        return data.experience.length > 0 ? (
+        return (data.experience || []).length > 0 ? (
           <SectionWrapper key="experience" title="Experience" config={config}>
-            {data.experience.map((exp) => (
+            {(data.experience || []).map((exp) => (
               <div key={exp.id} style={{ marginBottom: `${config.spacing.itemGap}px` }}>
                 <div className="flex items-start justify-between">
                   <div>
@@ -51,7 +51,7 @@ export function ResumeRenderer({ data, config, scale = 1 }: Props) {
                   </p>
                 </div>
                 <ul className="ml-4 mt-1 list-disc" style={{ fontSize: `${config.fontSize.body}px` }}>
-                  {exp.bullets.map((b, i) => (
+                  {(exp.bullets || []).map((b, i) => (
                     <li key={i} className="mt-0.5">{b}</li>
                   ))}
                 </ul>
@@ -60,9 +60,9 @@ export function ResumeRenderer({ data, config, scale = 1 }: Props) {
           </SectionWrapper>
         ) : null
       case "projects":
-        return data.projects.length > 0 ? (
+        return (data.projects || []).length > 0 ? (
           <SectionWrapper key="projects" title="Projects" config={config}>
-            {data.projects.map((proj) => (
+            {(data.projects || []).map((proj) => (
               <div key={proj.id} style={{ marginBottom: `${config.spacing.itemGap}px` }}>
                 <div className="flex items-start justify-between">
                   <p style={{ fontSize: `${config.fontSize.subheading}px`, fontWeight: 600, color: config.colors.heading }}>
@@ -75,13 +75,13 @@ export function ResumeRenderer({ data, config, scale = 1 }: Props) {
                 {proj.description && (
                   <p style={{ fontSize: `${config.fontSize.body}px`, color: config.colors.secondary }}>{proj.description}</p>
                 )}
-                {proj.technologies.length > 0 && (
+                {(proj.technologies || []).length > 0 && (
                   <p style={{ fontSize: `${config.fontSize.small}px`, color: config.colors.accent, marginTop: 2 }}>
-                    {proj.technologies.join(" | ")}
+                    {(proj.technologies || []).join(" | ")}
                   </p>
                 )}
                 <ul className="ml-4 mt-1 list-disc" style={{ fontSize: `${config.fontSize.body}px` }}>
-                  {proj.bullets.map((b, i) => (
+                  {(proj.bullets || []).map((b, i) => (
                     <li key={i} className="mt-0.5">{b}</li>
                   ))}
                 </ul>
@@ -90,10 +90,10 @@ export function ResumeRenderer({ data, config, scale = 1 }: Props) {
           </SectionWrapper>
         ) : null
       case "skills":
-        return data.skills.length > 0 ? (
+        return (data.skills || []).length > 0 ? (
           <SectionWrapper key="skills" title="Skills" config={config}>
             <div className="flex flex-wrap gap-1">
-              {data.skills.map((skill, i) => (
+              {(data.skills || []).map((skill, i) => (
                 <span
                   key={i}
                   className="inline-block rounded px-1.5 py-0.5"
@@ -111,9 +111,9 @@ export function ResumeRenderer({ data, config, scale = 1 }: Props) {
           </SectionWrapper>
         ) : null
       case "education":
-        return data.education.length > 0 ? (
+        return (data.education || []).length > 0 ? (
           <SectionWrapper key="education" title="Education" config={config}>
-            {data.education.map((edu) => (
+            {(data.education || []).map((edu) => (
               <div key={edu.id} style={{ marginBottom: `${config.spacing.itemGap}px` }}>
                 <p style={{ fontSize: `${config.fontSize.subheading}px`, fontWeight: 600, color: config.colors.heading }}>
                   {edu.degree} in {edu.field}
@@ -129,9 +129,9 @@ export function ResumeRenderer({ data, config, scale = 1 }: Props) {
           </SectionWrapper>
         ) : null
       case "certifications":
-        return data.certifications.length > 0 ? (
+        return (data.certifications || []).length > 0 ? (
           <SectionWrapper key="certifications" title="Certifications" config={config}>
-            {data.certifications.map((cert) => (
+            {(data.certifications || []).map((cert) => (
               <div key={cert.id} style={{ marginBottom: `${config.spacing.itemGap}px` }}>
                 <p style={{ fontSize: `${config.fontSize.subheading}px`, fontWeight: 600, color: config.colors.heading }}>
                   {cert.name}
@@ -144,10 +144,10 @@ export function ResumeRenderer({ data, config, scale = 1 }: Props) {
           </SectionWrapper>
         ) : null
       case "custom":
-        return data.customSections.map((sec) => (
+        return (data.customSections || []).map((sec) => (
           <SectionWrapper key={sec.id} title={sec.title} config={config}>
             <ul className="ml-4 list-disc" style={{ fontSize: `${config.fontSize.body}px` }}>
-              {sec.content.map((c, i) => (
+              {(sec.content || []).map((c, i) => (
                 <li key={i}>{c}</li>
               ))}
             </ul>

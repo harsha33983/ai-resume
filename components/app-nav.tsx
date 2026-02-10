@@ -18,6 +18,7 @@ import {
   LogOut,
   User,
   Mic,
+  GraduationCap,
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -41,6 +42,7 @@ const navItems = [
   { href: "/resources", label: "Resources", icon: BookOpen },
   { href: "/mock-test", label: "Mock Test", icon: Brain },
   { href: "/interview-prep", label: "Interview Prep", icon: Mic },
+  { href: "/placement-prep", label: "Placement Hub", icon: GraduationCap },
   { href: "/jobs", label: "Job Board", icon: Briefcase },
 ]
 
@@ -75,12 +77,12 @@ export function AppNav() {
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">
-            {navItems.map((item) => {
+            {navItems.map((item, index) => {
               const Icon = item.icon
               const active = pathname === item.href
               return (
                 <Link
-                  key={item.href}
+                  key={`${item.href}-${index}`}
                   href={item.href}
                   className={cn(
                     "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
@@ -135,12 +137,12 @@ export function AppNav() {
 
         {mobileOpen && (
           <nav className="border-t border-border bg-card px-4 pb-4 pt-2 md:hidden">
-            {navItems.map((item) => {
+            {navItems.map((item, index) => {
               const Icon = item.icon
               const active = pathname === item.href
               return (
                 <Link
-                  key={item.href}
+                  key={`mobile-${item.href}-${index}`}
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
                   className={cn(

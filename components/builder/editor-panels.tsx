@@ -182,17 +182,18 @@ function SummarySection({ data, onChange }: Props) {
   )
 }
 
+
 function SkillsSection({ data, onChange }: Props) {
   const [newSkill, setNewSkill] = useState("")
 
   const addSkill = () => {
     if (!newSkill.trim()) return
-    onChange({ ...data, skills: [...data.skills, newSkill.trim()] })
+    onChange({ ...data, skills: [...(data.skills || []), newSkill.trim()] })
     setNewSkill("")
   }
 
   const removeSkill = (index: number) => {
-    onChange({ ...data, skills: data.skills.filter((_, i) => i !== index) })
+    onChange({ ...data, skills: (data.skills || []).filter((_, i) => i !== index) })
   }
 
   return (
@@ -200,13 +201,13 @@ function SkillsSection({ data, onChange }: Props) {
       <AccordionTrigger className="text-sm font-semibold text-foreground">
         <span className="flex items-center gap-2">
           <GripVertical className="h-4 w-4 text-muted-foreground" />
-          Skills ({data.skills.length})
+          Skills ({(data.skills || []).length})
         </span>
       </AccordionTrigger>
       <AccordionContent>
         <div className="space-y-3 pb-2">
           <div className="flex flex-wrap gap-1.5">
-            {data.skills.map((skill, i) => (
+            {(data.skills || []).map((skill, i) => (
               <span
                 key={i}
                 className="flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs text-secondary-foreground"
@@ -249,21 +250,21 @@ function ExperienceSection({ data, onChange }: Props) {
       location: "",
       bullets: [""],
     }
-    onChange({ ...data, experience: [...data.experience, newExp] })
+    onChange({ ...data, experience: [...(data.experience || []), newExp] })
   }
 
   const updateExp = (index: number, field: keyof ExperienceItem, value: string | string[]) => {
-    const updated = [...data.experience]
+    const updated = [...(data.experience || [])]
     updated[index] = { ...updated[index], [field]: value }
     onChange({ ...data, experience: updated })
   }
 
   const removeExp = (index: number) => {
-    onChange({ ...data, experience: data.experience.filter((_, i) => i !== index) })
+    onChange({ ...data, experience: (data.experience || []).filter((_, i) => i !== index) })
   }
 
   const improveBullets = async (index: number) => {
-    const exp = data.experience[index]
+    const exp = (data.experience || [])[index]
     if (!exp.bullets.length) return
     setImproving(exp.id)
     try {
@@ -311,12 +312,12 @@ function ExperienceSection({ data, onChange }: Props) {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Bullet Points</Label>
-                {exp.bullets.map((bullet, bi) => (
+                {(exp.bullets || []).map((bullet, bi) => (
                   <div key={bi} className="flex gap-1">
                     <Input
                       value={bullet}
                       onChange={(e) => {
-                        const bullets = [...exp.bullets]
+                        const bullets = [...(exp.bullets || [])]
                         bullets[bi] = e.target.value
                         updateExp(i, "bullets", bullets)
                       }}
@@ -324,7 +325,7 @@ function ExperienceSection({ data, onChange }: Props) {
                       placeholder="Describe achievement..."
                     />
                     <Button variant="ghost" size="sm" onClick={() => {
-                      const bullets = exp.bullets.filter((_, j) => j !== bi)
+                      const bullets = (exp.bullets || []).filter((_, j) => j !== bi)
                       updateExp(i, "bullets", bullets)
                     }}>
                       <Trash2 className="h-3 w-3" />
@@ -332,7 +333,7 @@ function ExperienceSection({ data, onChange }: Props) {
                   </div>
                 ))}
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => updateExp(i, "bullets", [...exp.bullets, ""])}>
+                  <Button variant="outline" size="sm" onClick={() => updateExp(i, "bullets", [...(exp.bullets || []), ""])}>
                     <Plus className="mr-1 h-3 w-3" /> Add Bullet
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => improveBullets(i)} disabled={improving === exp.id}>
@@ -362,17 +363,17 @@ function ProjectsSection({ data, onChange }: Props) {
       bullets: [""],
       link: "",
     }
-    onChange({ ...data, projects: [...data.projects, newProj] })
+    onChange({ ...data, projects: [...(data.projects || []), newProj] })
   }
 
   const updateProj = (index: number, field: keyof ProjectItem, value: string | string[]) => {
-    const updated = [...data.projects]
+    const updated = [...(data.projects || [])]
     updated[index] = { ...updated[index], [field]: value }
     onChange({ ...data, projects: updated })
   }
 
   const removeProj = (index: number) => {
-    onChange({ ...data, projects: data.projects.filter((_, i) => i !== index) })
+    onChange({ ...data, projects: (data.projects || []).filter((_, i) => i !== index) })
   }
 
   return (
@@ -399,18 +400,18 @@ function ProjectsSection({ data, onChange }: Props) {
               </div>
               <Textarea value={proj.description || ""} onChange={(e) => updateProj(i, "description", e.target.value)} placeholder="Description" rows={2} className="text-sm" />
               <Input
-                value={proj.technologies.join(", ")}
+                value={(proj.technologies || []).join(", ")}
                 onChange={(e) => updateProj(i, "technologies", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
                 placeholder="Technologies (comma separated)"
                 className="h-8 text-sm"
               />
               <div className="space-y-1">
-                {proj.bullets.map((bullet, bi) => (
+                {(proj.bullets || []).map((bullet, bi) => (
                   <div key={bi} className="flex gap-1">
                     <Input
                       value={bullet}
                       onChange={(e) => {
-                        const bullets = [...proj.bullets]
+                        const bullets = [...(proj.bullets || [])]
                         bullets[bi] = e.target.value
                         updateProj(i, "bullets", bullets)
                       }}
@@ -418,13 +419,13 @@ function ProjectsSection({ data, onChange }: Props) {
                       placeholder="Bullet point..."
                     />
                     <Button variant="ghost" size="sm" onClick={() => {
-                      updateProj(i, "bullets", proj.bullets.filter((_, j) => j !== bi))
+                      updateProj(i, "bullets", (proj.bullets || []).filter((_, j) => j !== bi))
                     }}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                 ))}
-                <Button variant="outline" size="sm" onClick={() => updateProj(i, "bullets", [...proj.bullets, ""])}>
+                <Button variant="outline" size="sm" onClick={() => updateProj(i, "bullets", [...(proj.bullets || []), ""])}>
                   <Plus className="mr-1 h-3 w-3" /> Add Bullet
                 </Button>
               </div>
@@ -450,17 +451,17 @@ function EducationSection({ data, onChange }: Props) {
       endDate: "",
       gpa: "",
     }
-    onChange({ ...data, education: [...data.education, newEdu] })
+    onChange({ ...data, education: [...(data.education || []), newEdu] })
   }
 
   const updateEdu = (index: number, field: keyof EducationItem, value: string) => {
-    const updated = [...data.education]
+    const updated = [...(data.education || [])]
     updated[index] = { ...updated[index], [field]: value }
     onChange({ ...data, education: updated })
   }
 
   const removeEdu = (index: number) => {
-    onChange({ ...data, education: data.education.filter((_, i) => i !== index) })
+    onChange({ ...data, education: (data.education || []).filter((_, i) => i !== index) })
   }
 
   return (
@@ -509,17 +510,17 @@ function CertificationsSection({ data, onChange }: Props) {
       date: "",
       link: "",
     }
-    onChange({ ...data, certifications: [...data.certifications, newCert] })
+    onChange({ ...data, certifications: [...(data.certifications || []), newCert] })
   }
 
   const updateCert = (index: number, field: keyof CertificationItem, value: string) => {
-    const updated = [...data.certifications]
+    const updated = [...(data.certifications || [])]
     updated[index] = { ...updated[index], [field]: value }
     onChange({ ...data, certifications: updated })
   }
 
   const removeCert = (index: number) => {
-    onChange({ ...data, certifications: data.certifications.filter((_, i) => i !== index) })
+    onChange({ ...data, certifications: (data.certifications || []).filter((_, i) => i !== index) })
   }
 
   return (

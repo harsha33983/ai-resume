@@ -33,7 +33,8 @@ function useDebouncedSave(type: string, data: unknown, ready: boolean, userId: s
         if (error) throw error
         console.log(`[v0] Saved ${type} to Supabase`)
       } catch (err) {
-        console.error(`Failed to save ${type}:`, err)
+        console.error(`Failed to save ${type} (Details):`, JSON.stringify(err, null, 2))
+        console.error(`Failed to save ${type} (Original):`, err)
       }
     }, 800)
 

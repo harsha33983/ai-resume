@@ -65,13 +65,15 @@ export default function UploadPage() {
 
     try {
       setProgress(30)
-      const text = await file.text()
+
+      const formData = new FormData()
+      formData.append("file", file)
+
       setProgress(50)
 
       const res = await fetch("/api/parse-resume", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: formData,
       })
 
       setProgress(80)
@@ -82,9 +84,11 @@ export default function UploadPage() {
 
       const { data } = await res.json()
       setProgress(100)
+      console.log("Parsed Data:", data) // Debugging
       setResumeData(data)
       setParsed(true)
       toast.success("Resume parsed successfully!")
+      router.push("/builder")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to parse resume")
       toast.error("Failed to parse resume")
@@ -124,13 +128,12 @@ export default function UploadPage() {
                 onDragLeave={() => setDragActive(false)}
                 onDrop={handleDrop}
                 onClick={() => document.getElementById("file-input")?.click()}
-                className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 transition-colors ${
-                  dragActive
-                    ? "border-primary bg-primary/5"
-                    : file
-                      ? "border-primary/40 bg-primary/5"
-                      : "border-border hover:border-primary/40 hover:bg-secondary"
-                }`}
+                className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-12 transition-colors ${dragActive
+                  ? "border-primary bg-primary/5"
+                  : file
+                    ? "border-primary/40 bg-primary/5"
+                    : "border-border hover:border-primary/40 hover:bg-secondary"
+                  }`}
               >
                 <input
                   id="file-input"
@@ -228,7 +231,7 @@ export default function UploadPage() {
               <PasteResumeSection />
             </CardContent>
           </Card>
-      </main>
+        </main>
       </div>
     </AuthWrapper>
   )
@@ -251,6 +254,7 @@ function PasteResumeSection() {
       })
       if (!res.ok) throw new Error("Failed to parse")
       const { data } = await res.json()
+      console.log("Parsed Text Data:", data) // Debugging
       setResumeData(data)
       toast.success("Resume parsed successfully!")
       router.push("/builder")
@@ -279,7 +283,7 @@ function PasteResumeSection() {
           "Parse Text"
         )}
       </Button>
-      </div>
-    
+    </div>
+
   )
 }
