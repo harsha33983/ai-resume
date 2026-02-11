@@ -376,3 +376,100 @@ async def mock_test_endpoint(request: MockTestRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Mock test generation failed: {str(e)}"
         )
+
+# ----------------- Resources Endpoint -----------------
+
+class ResourceRequest(BaseModel):
+    skills: list
+
+@app.post("/resources", status_code=status.HTTP_200_OK)
+async def resources_endpoint(request: ResourceRequest):
+    """
+    Endpoint for generating FREE learning resources using Nvidia API.
+    """
+    try:
+        from openai import OpenAI
+        import json
+        
+        # Use valid key
+        API_KEY = "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"
+        BASE_URL = "https://integrate.api.nvidia.com/v1"
+        
+        client = OpenAI(
+            base_url=BASE_URL,
+            api_key=API_KEY
+        )
+        
+        skills_str = ", ".join(request.skills)
+        
+        system_prompt = f"""You are a helpful learning assistant. Provide a curated list of FREE learning resources for the following skills: {skills_str}.
+        
+        CRITICAL: YOU MUST RETURN ONLY A VALID JSON OBJECT. NO MARKDOWN, NO EXPLANATIONS.
+        
+        The JSON structure must exactly match this schema:
+        {{
+            "resources": [
+                {{
+                    "skill": "Skill Name",
+                    "title": "Resource Title",
+                    "link": "URL",
+                    "resourceType": "course/video/documentation",
+                    "description": "Brief description"
+                }}
+            ]
+        }}
+        
+        Requirements:
+        1. Provide exactly 2 resources per skill.
+        2. Resources MUST BE FREE (e.g., freeCodeCamp, YouTube, MDN, OpenCourseWare, EdX Audit, Coursera Audit).
+        3. DO NOT include paid courses or subscriptions.
+        4. Links must be valid and direct if possible.
+        """
+        
+        MODEL = "qwen/qwen2.5-coder-32b-instruct"
+        
+        messages = [
+            {"role": "user", "content": system_prompt}
+        ]
+        
+        completion = client.chat.completions.create(
+            model=MODEL,
+            messages=messages,
+            temperature=0.2,
+            top_p=0.7,
+            max_tokens=4096,
+            stream=False
+        )
+        
+        content = completion.choices[0].message.content
+        cleaned_content = content.strip()
+        
+        # Cleanup markdown
+        if cleaned_content.startswith("```json"):
+            cleaned_content = cleaned_content[7:]
+        if cleaned_content.startswith("```"):
+            cleaned_content = cleaned_content[3:]
+        if cleaned_content.endswith("```"):
+            cleaned_content = cleaned_content[:-3]
+            
+        cleaned_content = cleaned_content.strip()
+        
+        try:
+            parsed_data = json.loads(cleaned_content)
+        except json.JSONDecodeError:
+            logger.error(f"JSON Parse Error. Content: {cleaned_content[:500]}")
+            import re
+            json_match = re.search(r'\{.*\}', cleaned_content, re.DOTALL)
+            if json_match:
+                 parsed_data = json.loads(json_match.group(0))
+            else:
+                 raise ValueError("Could not extract JSON from response")
+                 
+        return {"data": parsed_data.get("resources", [])}
+
+    except Exception as e:
+        logger.error(f"Error in resources endpoint: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Resource generation failed: {str(e)}"
+        )

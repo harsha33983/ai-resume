@@ -6,13 +6,8 @@ export async function POST(req: Request) {
     const { role, seniority, missingSkills } = body
 
     // Proxy to Python Backend
-    let backendUrl = "http://127.0.0.1:8000/mock-test"
-
-    if (process.env.VERCEL_URL) {
-      backendUrl = `https://${process.env.VERCEL_URL}/api/py/mock-test`
-    } else if (process.env.NEXT_PUBLIC_VERCEL_URL) {
-      backendUrl = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}/api/py/mock-test`
-    }
+    // Use Render backend as default
+    const backendUrl = process.env.RESUME_BACKEND_URL || "https://ai-resume-qzt9.onrender.com/mock-test"
 
     console.log(`Mock Test Backend URL: ${backendUrl}`)
 
