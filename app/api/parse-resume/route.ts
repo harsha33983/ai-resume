@@ -2,12 +2,8 @@
 export async function POST(req: Request) {
   try {
     const contentType = req.headers.get("content-type") || ""
-    let backendBase = "http://127.0.0.1:8000"
-    if (process.env.VERCEL_URL) {
-      backendBase = `https://${process.env.VERCEL_URL}/api/py`
-    } else if (process.env.NEXT_PUBLIC_VERCEL_URL) {
-      backendBase = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}/api/py`
-    }
+    // Use Render backend as default
+    const backendBase = "https://ai-resume-qzt9.onrender.com"
     const backendUrl = process.env.RESUME_BACKEND_URL || backendBase
 
     console.log(`Parse Resume Backend Base: ${backendUrl}`)
