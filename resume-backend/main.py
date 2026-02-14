@@ -313,7 +313,7 @@ async def mock_test_endpoint(request: MockTestRequest):
         }}
     
         Generate:
-        - 5 MCQ questions (mix of easy, medium, hard)
+        - 10 MCQ questions (mix of easy, medium, hard)
         - 2 coding/practical questions
         - 1 scenario/system design questions
     
