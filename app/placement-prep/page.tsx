@@ -22,7 +22,11 @@ import {
     Users,
     Brain,
     GraduationCap,
-    CheckCircle2
+    CheckCircle2,
+    Database,
+    Cloud,
+    BarChart,
+    Briefcase
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
@@ -34,6 +38,13 @@ const categories = [
         icon: Brain,
         description: "Master quantitative aptitude, logical reasoning, and data interpretation.",
         resources: [
+            {
+                title: "Aptitude Resources Drive",
+                type: "Drive Folder",
+                description: "Comprehensive collection of aptitude study materials.",
+                link: "https://drive.google.com/drive/folders/1XmI6Iq_0MXJ6vq6Nkk-DcBK_y_LWNLCM",
+                icon: FileText
+            },
             {
                 title: "Quantitative Aptitude Formula Sheet",
                 type: "PDF",
@@ -47,13 +58,6 @@ const categories = [
                 description: "500+ practice questions on puzzles, seating arrangement, and more.",
                 link: "#",
                 icon: FileText
-            },
-            {
-                title: "Data Interpretation Video Series",
-                type: "Video",
-                description: "Learn shortcuts to solve DI problems quickly.",
-                link: "#",
-                icon: Video
             }
         ]
     },
@@ -64,25 +68,83 @@ const categories = [
         description: "Deep dive into DSA, DBMS, OS, and CN concepts.",
         resources: [
             {
+                title: "DSA Drive Folder",
+                type: "Drive Folder",
+                description: "Data Structures and Algorithms resources.",
+                link: "https://drive.google.com/drive/folders/1Ay5CmkoRJ5eEGcFskULc3CHNQn5iCVs3",
+                icon: Code
+            },
+            {
+                title: "CS Fundamentals Drive",
+                type: "Drive Folder",
+                description: "Core computer science concepts and notes.",
+                link: "https://drive.google.com/drive/folders/18FBvExqEtt9mtNKKP65f_ETdtS7nCG1G",
+                icon: BookOpen
+            },
+            {
+                title: "DBMS Resources",
+                type: "Drive Folder",
+                description: "Database Management Systems study materials.",
+                link: "https://drive.google.com/drive/folders/1f5dmqV84E-BN1PiVWqUhNXzcVWkCbGPa",
+                icon: Database
+            },
+            {
+                title: "Cloud Computing",
+                type: "Drive Folder",
+                description: "Cloud computing concepts and guides.",
+                link: "https://drive.google.com/drive/folders/1_iB9UnsVlOWvdjKVmtC7b8b26L2ORdVR",
+                icon: Cloud
+            },
+            {
                 title: "Data Structures & Algorithms Roadmap",
                 type: "Guide",
                 description: "Step-by-step guide to mastering DSA for interviews.",
                 link: "#",
                 icon: BookOpen
+            }
+        ]
+    },
+    {
+        id: "specialized",
+        label: "Specialized Tracks",
+        icon: Brain,
+        description: "Resources for AI, Data Analytics, and specialized fields.",
+        resources: [
+            {
+                title: "Python AI Drive",
+                type: "Drive Folder",
+                description: "Artificial Intelligence resources using Python.",
+                link: "https://drive.google.com/drive/folders/1D0w7UjTJlCEQNj6GXvqCgvlLPbsaCnG_",
+                icon: Brain
             },
             {
-                title: "Top 100 Coding Interview Questions",
-                type: "Link",
-                description: "Curated list of frequently asked coding problems.",
-                link: "#",
-                icon: LinkIcon
+                title: "Data Analytics Drive",
+                type: "Drive Folder",
+                description: "Data Analytics tools, techniques and resources.",
+                link: "https://drive.google.com/drive/folders/1if09a9QyNfBRlAKey7If5preZ3BswudZ",
+                icon: BarChart
+            }
+        ]
+    },
+    {
+        id: "strategy",
+        label: "Placement Strategy",
+        icon: Briefcase,
+        description: "Strategic preparation for placements and company-specific guides.",
+        resources: [
+            {
+                title: "Placement Preparation Drive",
+                type: "Drive Folder",
+                description: "General placement preparation materials.",
+                link: "https://drive.google.com/drive/folders/1iKiq-ZbI3dTN0igO8xRnyaWJF_RCf2Ym",
+                icon: GraduationCap
             },
             {
-                title: "System Design Primer",
-                type: "PDF",
-                description: "Basics of system design for freshers and experienced pros.",
-                link: "#",
-                icon: FileText
+                title: "Company Wise Questions",
+                type: "Drive Folder",
+                description: "Questions and patterns for specific companies.",
+                link: "https://drive.google.com/drive/folders/1V5-NWPj1JhfBBf6wpU4rV7Ebar2ShSi5",
+                icon: Briefcase
             }
         ]
     },
