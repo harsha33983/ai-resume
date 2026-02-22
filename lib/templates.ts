@@ -296,6 +296,97 @@ export const templates: TemplateConfig[] = [
       skills: true, education: true, certifications: true, custom: true,
     },
   },
+  {
+    id: "creative-canvas",
+    name: "Creative Canvas",
+    description: "Bold design with a vibrant header and artistic typography. Perfect for designers and creatives.",
+    category: "Design",
+    hasPhoto: true,
+    photoPosition: "center",
+    headerVariant: "banner",
+    decoration: "geometric",
+    fontFamily: "'Poppins', sans-serif",
+    headingFont: "'Montserrat', sans-serif",
+    fontSize: { name: 42, heading: 18, subheading: 14, body: 12, small: 11 },
+    spacing: { sectionGap: 24, itemGap: 12, lineHeight: 1.6 },
+    colors: {
+      primary: "#ffffff",
+      secondary: "#f1f5f9",
+      accent: "#f43f5e",
+      text: "#334155",
+      background: "#ffffff",
+      heading: "#0f172a",
+      border: "#e2e8f0",
+    },
+    layout: { columns: 1 },
+    sectionOrder: ["header", "summary", "experience", "projects", "skills", "education", "certifications", "custom"],
+    sectionVisibility: {
+      header: true, summary: true, experience: true, projects: true,
+      skills: true, education: true, certifications: true, custom: true,
+    },
+  },
+  {
+    id: "modern-gradient",
+    name: "Modern Gradient",
+    description: "Contemporary layout with subtle gradient accents and clean typography.",
+    category: "Technology",
+    hasPhoto: true,
+    photoPosition: "left",
+    headerVariant: "modern",
+    decoration: "gradient",
+    fontFamily: "'Inter', sans-serif",
+    headingFont: "'Inter', sans-serif",
+    fontSize: { name: 32, heading: 16, subheading: 13, body: 11, small: 10 },
+    spacing: { sectionGap: 18, itemGap: 10, lineHeight: 1.5 },
+    colors: {
+      primary: "#0f172a",
+      secondary: "#64748b",
+      accent: "#8b5cf6",
+      text: "#1e293b",
+      background: "#ffffff",
+      heading: "#0f172a",
+      border: "#e2e8f0",
+    },
+    layout: {
+      columns: 2,
+      sidebarPosition: "left",
+      sidebarSections: ["skills", "education", "certifications"],
+      mainSections: ["summary", "experience", "projects", "custom"],
+    },
+    sectionOrder: ["header", "summary", "experience", "projects", "skills", "education", "certifications", "custom"],
+    sectionVisibility: {
+      header: true, summary: true, experience: true, projects: true,
+      skills: true, education: true, certifications: true, custom: true,
+    },
+  },
+  {
+    id: "elegant-serif",
+    name: "Elegant Serif",
+    description: "High-end, editorial style layout with classic serif fonts.",
+    category: "Business",
+    hasPhoto: false,
+    headerVariant: "centered",
+    decoration: "minimal",
+    fontFamily: "'Merriweather', serif",
+    headingFont: "'Playfair Display', serif",
+    fontSize: { name: 36, heading: 18, subheading: 14, body: 12, small: 11 },
+    spacing: { sectionGap: 20, itemGap: 12, lineHeight: 1.6 },
+    colors: {
+      primary: "#1c1917",
+      secondary: "#57534e",
+      accent: "#d97706",
+      text: "#292524",
+      background: "#fafaf9",
+      heading: "#1c1917",
+      border: "#e7e5e4",
+    },
+    layout: { columns: 1 },
+    sectionOrder: ["header", "summary", "experience", "projects", "skills", "education", "certifications", "custom"],
+    sectionVisibility: {
+      header: true, summary: true, experience: true, projects: true,
+      skills: true, education: true, certifications: true, custom: true,
+    },
+  },
 ]
 
 export function getTemplate(id: string): TemplateConfig {
@@ -342,7 +433,8 @@ export const roleSkillMap: Record<string, string[]> = {
     "Scikit-learn", "Pandas", "NumPy", "Statistics", "Big Data", "Hadoop", "Spark",
     "Data Mining", "Data Visualization", "Jupyter", "Git", "A/B Testing",
   ],
-}
+};
+
 
 export const defaultResumeData = {
   personal: {

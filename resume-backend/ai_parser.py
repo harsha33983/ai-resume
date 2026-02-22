@@ -65,7 +65,13 @@ def parse_resume_with_ai(text: str) -> Dict[str, Any]:
             "photoUrl": ""
         },
         "summary": "Professional summary text...",
-        "skills": ["Skill1", "Skill2", ...],
+        "skills": [
+            { 
+              "id": "cat-1", 
+              "name": "Category Name (e.g. Languages, Frameworks, Tools)", 
+              "items": ["Skill1", "Skill2"] 
+            }
+        ],
         "education": [
             { "id": "edu-1", "institution": "University Name", "degree": "Degree Name", "startDate": "YYYY", "endDate": "YYYY", "gpa": "3.8" }
         ],
@@ -86,6 +92,13 @@ def parse_resume_with_ai(text: str) -> Dict[str, Any]:
     - If a field is missing, use an empty string "" or empty list [].
     - Extract dates in a consistent format if possible.
     - Ensure all lists (experience, projects, education) have unique "id" fields (e.g., "exp-1", "exp-2").
+    - **Skills Handling (CRITICAL)**:
+        - You MUST return a list of objects, not strings.
+        - Structure: `[ { "id": "cat-1", "name": "Category Name", "items": ["Skill1", "Skill2"] } ]`
+        - If the resume matches "Languages: A, B", return `{"name": "Languages", "items": ["A", "B"]}`.
+        - If the resume has a flat list, YOU MUST categorize them yourself (e.g., "Frontend", "Backend").
+        - **NEVER** return a flat array of strings `["Skill1", "Skill2"]`. This is a schema violation.
+    - Ensure skill category IDs are unique (e.g., "cat-1", "cat-2").
     """
 
     messages = [
@@ -98,10 +111,10 @@ def parse_resume_with_ai(text: str) -> Dict[str, Any]:
         completion = client.chat.completions.create(
             model=MODEL,
             messages=messages,
-            temperature=0.2, # Low temperature for consistent JSON
-            top_p=0.7,
-            max_tokens=2048, # Increased to ensure full JSON fits
-            stream=True # Enable stream as requested
+            temperature=0.1, # Lower temperature for stricter adherence
+            top_p=0.5,
+            max_tokens=2048,
+            stream=True 
         )
 
         full_content = ""

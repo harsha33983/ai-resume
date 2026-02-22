@@ -54,10 +54,16 @@ export interface CustomSectionItem {
   content: string[]
 }
 
+export interface SkillCategory {
+  id: string
+  name: string
+  items: string[]
+}
+
 export interface ResumeData {
   personal: PersonalInfo
   summary: string
-  skills: string[]
+  skills: SkillCategory[]
   experience: ExperienceItem[]
   projects: ProjectItem[]
   education: EducationItem[]
@@ -114,6 +120,9 @@ export interface TemplateConfig {
   }
   sectionOrder: BlockType[]
   sectionVisibility: Record<BlockType, boolean>
+  headerVariant?: "default" | "centered" | "split" | "banner" | "modern"
+  backgroundImage?: string
+  decoration?: "none" | "geometric" | "minimal" | "gradient"
 }
 
 // ========== Analysis Results ==========

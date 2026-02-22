@@ -252,6 +252,7 @@ class MockTestRequest(BaseModel):
     role: str
     seniority: str = "mid-level"
     missingSkills: list = []
+    count: int = 20  # Default total questions
 
 @app.post("/mock-test", status_code=status.HTTP_200_OK)
 async def mock_test_endpoint(request: MockTestRequest):
@@ -261,6 +262,7 @@ async def mock_test_endpoint(request: MockTestRequest):
     try:
         from openai import OpenAI
         import json
+        import math
         
         # Use valid key
         API_KEY = "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"
@@ -270,6 +272,18 @@ async def mock_test_endpoint(request: MockTestRequest):
             base_url=BASE_URL,
             api_key=API_KEY
         )
+        
+        # Calculate distribution based on count
+        # rough ratio: 70% MCQ, 20% Coding, 10% Scenario
+        total = request.count
+        coding_count = max(1, math.floor(total * 0.2))
+        scenario_count = max(1, math.floor(total * 0.1))
+        # Ensure at least minimal valid test
+        if total < 5:
+             coding_count = 1
+             scenario_count = 1
+             
+        mcq_count = max(1, total - coding_count - scenario_count)
         
         skills_focus = f"concepts related to {', '.join(request.missingSkills)}" if request.missingSkills else "core concepts"
         
@@ -312,10 +326,10 @@ async def mock_test_endpoint(request: MockTestRequest):
           ]
         }}
     
-        Generate:
-        - 10 MCQ questions (mix of easy, medium, hard)
-        - 2 coding/practical questions
-        - 1 scenario/system design questions
+        Generate exactly:
+        - {mcq_count} MCQ questions (mix of easy, medium, hard)
+        - {coding_count} coding/practical questions
+        - {scenario_count} scenario/system design questions
     
         Focus on {skills_focus}. Make questions realistic and relevant.
         """

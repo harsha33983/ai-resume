@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import type { ResumeData, ExperienceItem, ProjectItem, EducationItem, CertificationItem, CustomSectionItem } from "@/lib/types"
+import type { ResumeData, ExperienceItem, ProjectItem, EducationItem, CertificationItem, CustomSectionItem, SkillCategory } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -183,17 +183,59 @@ function SummarySection({ data, onChange }: Props) {
 }
 
 
-function SkillsSection({ data, onChange }: Props) {
-  const [newSkill, setNewSkill] = useState("")
 
-  const addSkill = () => {
-    if (!newSkill.trim()) return
-    onChange({ ...data, skills: [...(data.skills || []), newSkill.trim()] })
-    setNewSkill("")
+function SkillsSection({ data, onChange }: Props) {
+  // Migration logic: if skills is string[] (legacy), convert to category
+  const skills = Array.isArray(data.skills) && typeof data.skills[0] === "string"
+    ? [{ id: "general", name: "General Skills", items: data.skills as unknown as string[] }]
+    : (data.skills as unknown as SkillCategory[]) || []
+
+  // Ensure type safety when updating
+  const updateSkills = (newSkills: SkillCategory[]) => {
+    onChange({ ...data, skills: newSkills as any })
   }
 
-  const removeSkill = (index: number) => {
-    onChange({ ...data, skills: (data.skills || []).filter((_, i) => i !== index) })
+  const [newCategoryName, setNewCategoryName] = useState("")
+
+  const addCategory = () => {
+    if (!newCategoryName.trim()) return
+    const newCategory = {
+      id: `cat-${Date.now()}`,
+      name: newCategoryName.trim(),
+      items: [],
+    }
+    updateSkills([...skills, newCategory])
+    setNewCategoryName("")
+  }
+
+  const removeCategory = (index: number) => {
+    const updated = [...skills]
+    updated.splice(index, 1)
+    updateSkills(updated)
+  }
+
+  const updateCategoryName = (index: number, name: string) => {
+    const updated = [...skills]
+    updated[index] = { ...updated[index], name }
+    updateSkills(updated)
+  }
+
+  const addItemToCategory = (catIndex: number, item: string) => {
+    if (!item.trim()) return
+    const updated = [...skills]
+    updated[catIndex] = {
+      ...updated[catIndex],
+      items: [...updated[catIndex].items, item.trim()],
+    }
+    updateSkills(updated)
+  }
+
+  const removeItemFromCategory = (catIndex: number, itemIndex: number) => {
+    const updated = [...skills]
+    const items = [...updated[catIndex].items]
+    items.splice(itemIndex, 1)
+    updated[catIndex] = { ...updated[catIndex], items }
+    updateSkills(updated)
   }
 
   return (
@@ -201,34 +243,64 @@ function SkillsSection({ data, onChange }: Props) {
       <AccordionTrigger className="text-sm font-semibold text-foreground">
         <span className="flex items-center gap-2">
           <GripVertical className="h-4 w-4 text-muted-foreground" />
-          Skills ({(data.skills || []).length})
+          Skills
         </span>
       </AccordionTrigger>
       <AccordionContent>
-        <div className="space-y-3 pb-2">
-          <div className="flex flex-wrap gap-1.5">
-            {(data.skills || []).map((skill, i) => (
-              <span
-                key={i}
-                className="flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs text-secondary-foreground"
-              >
-                {skill}
-                <button onClick={() => removeSkill(i)} className="ml-0.5 text-muted-foreground hover:text-destructive">
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-          <div className="flex gap-2">
+        <div className="space-y-4 pb-2">
+          {skills.map((cat, catIndex) => (
+            <div key={cat.id || catIndex} className="space-y-2 rounded-md border border-border p-3 bg-secondary/10">
+              <div className="flex items-center justify-between gap-2">
+                <Input
+                  value={cat.name}
+                  onChange={(e) => updateCategoryName(catIndex, e.target.value)}
+                  className="h-7 text-sm font-semibold bg-transparent border-none shadow-none focus-visible:ring-0 px-0"
+                  placeholder="Category Name"
+                />
+                <Button variant="ghost" size="sm" onClick={() => removeCategory(catIndex)}>
+                  <Trash2 className="h-3 w-3 text-destructive" />
+                </Button>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                {cat.items.map((item: string, itemIndex: number) => (
+                  <span
+                    key={itemIndex}
+                    className="flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-xs text-secondary-foreground"
+                  >
+                    {item}
+                    <button onClick={() => removeItemFromCategory(catIndex, itemIndex)} className="ml-0.5 text-muted-foreground hover:text-destructive">
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+
+              <div className="flex gap-2 mt-2">
+                <Input
+                  placeholder="Add skill..."
+                  className="h-8 text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      addItemToCategory(catIndex, e.currentTarget.value)
+                      e.currentTarget.value = ""
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+
+          <div className="flex gap-2 items-center pt-2">
             <Input
-              value={newSkill}
-              onChange={(e) => setNewSkill(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addSkill()}
-              placeholder="Add a skill..."
-              className="h-8 text-sm"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              placeholder="New Category (e.g. Languages)"
+              className="h-9 text-sm"
+              onKeyDown={(e) => e.key === "Enter" && addCategory()}
             />
-            <Button variant="outline" size="sm" onClick={addSkill}>
-              <Plus className="h-3 w-3" />
+            <Button variant="outline" size="sm" onClick={addCategory}>
+              <Plus className="mr-1 h-3 w-3" /> Add Category
             </Button>
           </div>
         </div>
@@ -236,6 +308,7 @@ function SkillsSection({ data, onChange }: Props) {
     </AccordionItem>
   )
 }
+
 
 function ExperienceSection({ data, onChange }: Props) {
   const [improving, setImproving] = useState<string | null>(null)

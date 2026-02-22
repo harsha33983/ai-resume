@@ -52,7 +52,10 @@ export default function SkillGapPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          skills: resumeData.skills,
+
+          skills: (resumeData.skills || []).flatMap((s: any) =>
+            typeof s === "string" ? s : s.items || []
+          ),
           targetRole,
         }),
       })

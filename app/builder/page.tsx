@@ -9,6 +9,7 @@ import { AuthWrapper } from "@/components/auth-wrapper"
 import { EditorPanels } from "@/components/builder/editor-panels"
 import { ResumeRenderer } from "@/components/builder/resume-renderer"
 import { StyleControls } from "@/components/builder/style-controls"
+import { FloatingDesignPanel } from "@/components/builder/floating-design-panel"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -181,6 +182,9 @@ export default function BuilderPage() {
                 <ResumeRenderer data={localData} config={localConfig} scale={scale} />
               </div>
             </div>
+
+            {/* Direct Design Controls */}
+            <FloatingDesignPanel config={localConfig} onChange={setLocalConfig} />
           </div>
         </div>
 

@@ -2,8 +2,9 @@
 
 import React from "react"
 
-import type { ResumeData, TemplateConfig, BlockType } from "@/lib/types"
+import type { ResumeData, TemplateConfig, BlockType, SkillCategory } from "@/lib/types"
 import { Mail, Phone, MapPin, Linkedin, Github, Globe } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface Props {
   data: ResumeData
@@ -18,6 +19,9 @@ export function ResumeRenderer({ data, config, scale = 1 }: Props) {
     lineHeight: config.spacing.lineHeight,
     color: config.colors.text,
     backgroundColor: config.colors.background,
+    backgroundImage: config.decoration === "gradient"
+      ? `linear-gradient(to bottom right, ${config.colors.background}, ${config.colors.background}, ${config.colors.accent}10)`
+      : config.backgroundImage || "none",
   }
 
   const renderBlock = (blockType: BlockType) => {
@@ -90,22 +94,47 @@ export function ResumeRenderer({ data, config, scale = 1 }: Props) {
           </SectionWrapper>
         ) : null
       case "skills":
-        return (data.skills || []).length > 0 ? (
+        // Handle both legacy string[] and new SkillCategory[]
+        const skillsData = (data.skills || [])
+        const isLegacy = skillsData.length > 0 && typeof skillsData[0] === "string"
+        const categories = isLegacy
+          ? [{ id: "gen", name: "", items: skillsData as unknown as string[] }]
+          : (skillsData as unknown as SkillCategory[])
+
+        return categories.length > 0 ? (
           <SectionWrapper key="skills" title="Skills" config={config}>
-            <div className="flex flex-wrap gap-1">
-              {(data.skills || []).map((skill, i) => (
-                <span
-                  key={i}
-                  className="inline-block rounded px-1.5 py-0.5"
-                  style={{
-                    fontSize: `${config.fontSize.small}px`,
-                    backgroundColor: `${config.colors.accent}15`,
-                    color: config.colors.accent,
-                    border: `1px solid ${config.colors.accent}30`,
-                  }}
-                >
-                  {skill}
-                </span>
+            <div className="space-y-3">
+              {categories.map((cat, i) => (
+                <div key={i}>
+                  {cat.name && (
+                    <h4
+                      style={{
+                        fontSize: `${config.fontSize.subheading}px`,
+                        fontWeight: 600,
+                        color: config.colors.secondary,
+                        marginBottom: 4,
+                      }}
+                    >
+                      {cat.name}
+                    </h4>
+                  )}
+                  <div className="flex flex-wrap gap-1">
+                    {cat.items.map((skill: string, si: number) => (
+                      <span
+                        key={si}
+                        className="inline-block rounded px-1.5 py-0.5"
+                        style={{
+                          fontSize: `${config.fontSize.small}px`,
+                          backgroundColor: `${config.colors.accent}15`,
+                          color: config.colors.accent,
+                          border: `1px solid ${config.colors.accent}30`,
+                        }}
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </SectionWrapper>
@@ -250,9 +279,17 @@ function PhotoAvatar({ url, size = 80, accent }: { url: string; size?: number; a
 function HeaderBlock({ data, config }: { data: ResumeData; config: TemplateConfig }) {
   const showPhoto = config.hasPhoto && (data.personal.photoUrl || config.hasPhoto)
   const photoPos = config.photoPosition || "left"
+  const variant = config.headerVariant || "default"
 
+  // Common contact items
   const contactItems = (
-    <div className="mt-2 flex flex-wrap items-center justify-center gap-3" style={{ fontSize: `${config.fontSize.small}px`, color: config.colors.secondary }}>
+    <div
+      className={cn("mt-2 flex flex-wrap items-center gap-3", variant === "banner" ? "text-white/90 justify-center" : "text-slate-500 justify-center")}
+      style={{
+        fontSize: `${config.fontSize.small}px`,
+        color: variant === "banner" ? "#ffffffdd" : config.colors.secondary
+      }}
+    >
       {data.personal.email && (
         <span className="flex items-center gap-1">
           <Mail style={{ width: 10, height: 10 }} />
@@ -291,6 +328,72 @@ function HeaderBlock({ data, config }: { data: ResumeData; config: TemplateConfi
       )}
     </div>
   )
+
+
+
+  // Banner Variant (for Creative Canvas)
+  if (variant === "banner") {
+    return (
+      <div
+        className="text-center relative overflow-hidden rounded-xl mb-6 p-8"
+        style={{
+          backgroundColor: config.colors.heading,
+          color: "#ffffff",
+          marginBottom: `${config.spacing.sectionGap}px`
+        }}
+      >
+        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+
+        {showPhoto && (
+          <div className="mb-4 flex justify-center">
+            <div className="p-1.5 rounded-full bg-white/20 backdrop-blur-sm">
+              <PhotoAvatar url={data.personal.photoUrl} size={100} accent="#ffffff" />
+            </div>
+          </div>
+        )}
+
+        <h1 style={{ fontSize: `${config.fontSize.name}px`, fontWeight: 800, fontFamily: config.headingFont, color: "#ffffff", letterSpacing: "-0.02em" }}>
+          {data.personal.fullName || "Your Name"}
+        </h1>
+
+        {data.personal.title && (
+          <p style={{ fontSize: `${config.fontSize.heading}px`, color: "#ffffffcc", marginTop: 8, fontWeight: 500, letterSpacing: "1px", textTransform: "uppercase" }}>
+            {data.personal.title}
+          </p>
+        )}
+
+        <div className="mt-6 pt-6 border-t border-white/20">
+          {contactItems}
+        </div>
+      </div>
+    )
+  }
+
+  // Modern Variant (for Modern Gradient)
+  if (variant === "modern") {
+    return (
+      <div className="flex items-center gap-6 pb-6 border-b" style={{ marginBottom: `${config.spacing.sectionGap}px`, borderColor: config.colors.border }}>
+        {showPhoto && (
+          <PhotoAvatar url={data.personal.photoUrl} size={90} accent={config.colors.accent} />
+        )}
+
+        <div className="flex-1">
+          <h1 style={{ fontSize: `${config.fontSize.name}px`, fontWeight: 800, fontFamily: config.headingFont, color: config.colors.primary }}>
+            {data.personal.fullName || "Your Name"}
+          </h1>
+          {data.personal.title && (
+            <p className="font-bold flex items-center gap-2" style={{ fontSize: `${config.fontSize.subheading}px`, color: config.colors.accent }}>
+              {data.personal.title}
+              <span className="h-0.5 flex-1 bg-gradient-to-r from-current to-transparent opacity-50 block" />
+            </p>
+          )}
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+            {contactItems}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // Center photo layout - photo above name
   if (showPhoto && photoPos === "center") {

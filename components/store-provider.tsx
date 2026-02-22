@@ -99,7 +99,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [user, loading, supabase])
 
   // Auto-save whenever state changes (debounced) - only for authenticated users
-  // Note: Firestore field names must match what we load above (resume, analysis, etc.)
   useDebouncedSave("resume", resumeData, hydrated && isAuthenticated, user?.id)
   useDebouncedSave("analysis", analysisResult, hydrated && isAuthenticated, user?.id)
   useDebouncedSave("skillGap", skillGapResult, hydrated && isAuthenticated, user?.id)

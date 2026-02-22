@@ -1,24 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useStore } from "@/lib/store"
 import { roleSkillMap } from "@/lib/templates"
 import { AppNav } from "@/components/app-nav"
 import { AuthWrapper } from "@/components/auth-wrapper"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Progress } from "@/components/ui/progress"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   Select,
   SelectContent,
@@ -26,21 +15,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 import {
   Brain,
   Loader2,
-  Play,
   CheckCircle,
   XCircle,
-  Send,
-  BarChart3,
   Trophy,
   BookOpen,
   Code,
   MessageSquare,
+  Timer,
+  Bolt,
+  ArrowRight,
+  ArrowLeft,
+  Share2,
+  Download,
+  AlertCircle,
+  TrendingDown,
+  School,
+  Sparkles
 } from "lucide-react"
 import { toast } from "sonner"
 import type { MockTest, TestEvaluation } from "@/lib/types"
+
+type TestStep = 'config' | 'loading' | 'active' | 'results'
 
 export default function MockTestPage() {
   const {
@@ -50,27 +51,52 @@ export default function MockTestPage() {
     setTestEvaluation,
     skillGapResult,
   } = useStore()
-  const [loading, setLoading] = useState(false)
-  const [evaluating, setEvaluating] = useState(false)
+
+  const [step, setStep] = useState<TestStep>('config')
   const [targetRole, setTargetRole] = useState("")
   const [seniority, setSeniority] = useState("mid-level")
+  const [questionCount, setQuestionCount] = useState("20")
+
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [mcqAnswers, setMcqAnswers] = useState<Record<string, number>>({})
   const [codingAnswers, setCodingAnswers] = useState<Record<string, string>>({})
   const [scenarioAnswers, setScenarioAnswers] = useState<Record<string, string>>({})
-  const [submitted, setSubmitted] = useState(false)
+
+  const [timeLeft, setTimeLeft] = useState(30 * 60) // 30 minutes
+  const [evaluating, setEvaluating] = useState(false)
+
+  // Timer
+  useEffect(() => {
+    let timer: NodeJS.Timeout
+    if (step === 'active' && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1)
+      }, 1000)
+    }
+    return () => clearInterval(timer)
+  }, [step, timeLeft])
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
 
   const generateTest = async () => {
     if (!targetRole) {
       toast.error("Select a role first")
       return
     }
-    setLoading(true)
-    setSubmitted(false)
+    setStep('loading')
     setTestEvaluation(null)
     setMcqAnswers({})
     setCodingAnswers({})
     setScenarioAnswers({})
+
     try {
+      // Simulate loading progress
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
       const res = await fetch("/api/mock-test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -78,15 +104,18 @@ export default function MockTestPage() {
           role: targetRole,
           seniority,
           missingSkills: skillGapResult?.missingSkills || [],
+          count: parseInt(questionCount)
         }),
       })
       const { data } = await res.json()
       setMockTest(data)
+      setStep('active')
+      setTimeLeft(30 * 60)
+      setCurrentQuestionIndex(0)
       toast.success("Mock test generated!")
     } catch {
       toast.error("Failed to generate test")
-    } finally {
-      setLoading(false)
+      setStep('config')
     }
   }
 
@@ -106,7 +135,7 @@ export default function MockTestPage() {
       })
       const { data } = await res.json()
       setTestEvaluation(data)
-      setSubmitted(true)
+      setStep('results')
       toast.success("Test evaluated!")
     } catch {
       toast.error("Failed to evaluate test")
@@ -115,418 +144,462 @@ export default function MockTestPage() {
     }
   }
 
+  // Combine all questions into a flat array for traversal
+  const allQuestions = mockTest ? [
+    ...mockTest.mcqs.map(q => ({ ...q, type: 'mcq' as const })),
+    ...mockTest.codingQuestions.map(q => ({ ...q, type: 'coding' as const })),
+    ...mockTest.scenarioQuestions.map(q => ({ ...q, type: 'scenario' as const }))
+  ] : []
+
+  const currentQuestion = allQuestions[currentQuestionIndex]
+
+  const handleAnswer = (val: string | number) => {
+    if (!currentQuestion) return
+
+    if (currentQuestion.type === 'mcq') {
+      setMcqAnswers(prev => ({ ...prev, [currentQuestion.id]: val as number }))
+    } else if (currentQuestion.type === 'coding') {
+      setCodingAnswers(prev => ({ ...prev, [currentQuestion.id]: val as string }))
+    } else {
+      setScenarioAnswers(prev => ({ ...prev, [currentQuestion.id]: val as string }))
+    }
+  }
+
+  const getAnswer = () => {
+    if (!currentQuestion) return ""
+    if (currentQuestion.type === 'mcq') return mcqAnswers[currentQuestion.id]?.toString()
+    if (currentQuestion.type === 'coding') return codingAnswers[currentQuestion.id] || ""
+    return scenarioAnswers[currentQuestion.id] || ""
+  }
+
+  const downloadPDF = async () => {
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const jsPDF = (await import('jspdf')).default
+      const element = document.getElementById('test-results')
+      if (!element) return
+
+      const canvas = await html2canvas(element)
+      const data = canvas.toDataURL('image/png')
+
+      const pdf = new jsPDF()
+      const imgProperties = pdf.getImageProperties(data)
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pdfHeight = (imgProperties.height * pdfWidth) / imgProperties.width
+
+      pdf.addImage(data, 'PNG', 0, 0, pdfWidth, pdfHeight)
+      pdf.save('mock-test-results.pdf')
+      toast.success("PDF downloading...")
+    } catch {
+      toast.error("Failed to download PDF")
+    }
+  }
+
+  const shareScore = () => {
+    const text = `I just scored ${testEvaluation?.totalScore}% on my AI Mock Test for ${mockTest?.role}! 🚀 Check out AI Resume Studio.`
+    navigator.clipboard.writeText(text)
+    toast.success("Score copied to clipboard!")
+  }
+
   return (
     <AuthWrapper>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 font-sans text-slate-900 dark:text-slate-100">
         <AppNav />
-        <main className="mx-auto max-w-5xl px-4 py-8 lg:px-6">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              Mock Test
-            </h1>
-          <p className="mt-2 text-muted-foreground">
-            AI-generated interview questions tailored to your target role and
-            skill level. Includes MCQs, coding challenges, and system design
-            scenarios.
-          </p>
-        </div>
+        <main className="max-w-[1200px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
 
-        {/* Generate Test Section */}
-        {!mockTest && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Generate Mock Test</CardTitle>
-              <CardDescription>
-                Select your target role and seniority level to generate a
-                customized test.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                <div className="flex-1">
-                  <Label className="text-sm text-muted-foreground">Target Role</Label>
-                  <Select value={targetRole} onValueChange={setTargetRole}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select a role..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.keys(roleSkillMap).map((role) => (
-                        <SelectItem key={role} value={role}>
-                          {role}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+          {/* SECTION 1: CONFIGURATION */}
+          {step === 'config' && (
+            <section className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex flex-wrap justify-between gap-3 mb-6">
+                <div className="flex min-w-72 flex-col gap-2">
+                  <p className="text-slate-900 dark:text-white text-3xl sm:text-4xl font-black leading-tight tracking-tight">AI Mock Test Generator</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base font-normal">Customize your practice session to match your career goals.</p>
                 </div>
-                <div className="w-48">
-                  <Label className="text-sm text-muted-foreground">Seniority</Label>
-                  <Select value={seniority} onValueChange={setSeniority}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="junior">Junior</SelectItem>
-                      <SelectItem value="mid-level">Mid-Level</SelectItem>
-                      <SelectItem value="senior">Senior</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button onClick={generateTest} disabled={loading || !targetRole}>
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="mr-2 h-4 w-4" />
-                      Generate Test
-                    </>
-                  )}
-                </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
+              <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-slate-200 dark:border-zinc-800 overflow-hidden">
+                <h2 className="text-slate-900 dark:text-white text-[22px] font-bold leading-tight px-6 pb-3 pt-6">Test Configuration</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+                  <div className="flex flex-col gap-4">
+                    <Label className="flex flex-col flex-1 gap-2">
+                      <span className="text-slate-700 dark:text-slate-300 text-base font-semibold">Target Skill</span>
+                      <Select value={targetRole} onValueChange={setTargetRole}>
+                        <SelectTrigger className="w-full h-14 bg-slate-50 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700 text-base">
+                          <SelectValue placeholder="Select target role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.keys(roleSkillMap).map((role) => (
+                            <SelectItem key={role} value={role}>{role}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Label>
 
-        {/* Test Questions */}
-        {mockTest && !submitted && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-foreground">
-                  {mockTest.role} - {mockTest.seniority}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {mockTest.mcqs.length} MCQs, {mockTest.codingQuestions.length}{" "}
-                  Coding, {mockTest.scenarioQuestions.length} Scenario Questions
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => { setMockTest(null); setTestEvaluation(null) }}>
-                  New Test
-                </Button>
-                <Button onClick={submitTest} disabled={evaluating}>
-                  {evaluating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Evaluating...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="mr-2 h-4 w-4" />
-                      Submit Test
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            <Tabs defaultValue="mcq">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="mcq" className="gap-1.5">
-                  <BookOpen className="h-3.5 w-3.5" />
-                  MCQ ({mockTest.mcqs.length})
-                </TabsTrigger>
-                <TabsTrigger value="coding" className="gap-1.5">
-                  <Code className="h-3.5 w-3.5" />
-                  Coding ({mockTest.codingQuestions.length})
-                </TabsTrigger>
-                <TabsTrigger value="scenario" className="gap-1.5">
-                  <MessageSquare className="h-3.5 w-3.5" />
-                  Scenario ({mockTest.scenarioQuestions.length})
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="mcq" className="space-y-4">
-                {mockTest.mcqs.map((q, i) => (
-                  <Card key={q.id}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between">
-                        <CardTitle className="text-sm">
-                          Q{i + 1}. {q.question}
-                        </CardTitle>
-                        <div className="flex gap-1.5">
-                          <Badge variant={q.difficulty === "easy" ? "secondary" : q.difficulty === "medium" ? "outline" : "destructive"} className="text-xs">
-                            {q.difficulty}
-                          </Badge>
-                          <Badge variant="secondary" className="text-xs">
-                            {q.skillTag}
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <RadioGroup
-                        value={mcqAnswers[q.id]?.toString()}
-                        onValueChange={(v) => setMcqAnswers((prev) => ({ ...prev, [q.id]: parseInt(v) }))}
-                      >
-                        {q.options.map((opt, oi) => (
-                          <div key={oi} className="flex items-center gap-2 rounded-md border border-border px-3 py-2">
-                            <RadioGroupItem value={oi.toString()} id={`${q.id}-${oi}`} />
-                            <Label htmlFor={`${q.id}-${oi}`} className="text-sm font-normal text-foreground">
-                              {opt}
-                            </Label>
-                          </div>
+                    <div>
+                      <span className="text-slate-700 dark:text-slate-300 text-base font-semibold pb-2 block">Difficulty Level</span>
+                      <RadioGroup value={seniority} onValueChange={setSeniority} className="flex h-12 w-full rounded-lg bg-slate-100 dark:bg-zinc-800 p-1">
+                        {['junior', 'mid-level', 'senior'].map((level) => (
+                          <Label
+                            key={level}
+                            className={cn(
+                              "flex cursor-pointer h-full grow items-center justify-center rounded-lg px-2 text-sm font-bold transition-all capitalize",
+                              seniority === level
+                                ? "bg-white dark:bg-zinc-700 shadow-sm text-primary"
+                                : "text-slate-500 dark:text-slate-400 active:scale-95"
+                            )}
+                          >
+                            {level}
+                            <RadioGroupItem value={level} className="hidden" />
+                          </Label>
                         ))}
                       </RadioGroup>
-                    </CardContent>
-                  </Card>
-                ))}
-              </TabsContent>
-
-              <TabsContent value="coding" className="space-y-4">
-                {mockTest.codingQuestions.map((q, i) => (
-                  <Card key={q.id}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between">
-                        <CardTitle className="text-sm">
-                          Q{i + 1}. {q.question}
-                        </CardTitle>
-                        <div className="flex gap-1.5">
-                          <Badge variant={q.difficulty === "easy" ? "secondary" : q.difficulty === "medium" ? "outline" : "destructive"} className="text-xs">
-                            {q.difficulty}
-                          </Badge>
-                          <Badge variant="secondary" className="text-xs">
-                            {q.skillTag}
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <Textarea
-                        value={codingAnswers[q.id] || ""}
-                        onChange={(e) => setCodingAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
-                        rows={6}
-                        className="font-mono text-sm"
-                        placeholder="Write your solution here..."
-                      />
-                    </CardContent>
-                  </Card>
-                ))}
-              </TabsContent>
-
-              <TabsContent value="scenario" className="space-y-4">
-                {mockTest.scenarioQuestions.map((q, i) => (
-                  <Card key={q.id}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-start justify-between">
-                        <CardTitle className="text-sm">
-                          Q{i + 1}. {q.question}
-                        </CardTitle>
-                        <div className="flex gap-1.5">
-                          <Badge variant={q.difficulty === "medium" ? "outline" : "destructive"} className="text-xs">
-                            {q.difficulty}
-                          </Badge>
-                          <Badge variant="secondary" className="text-xs">
-                            {q.skillTag}
-                          </Badge>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <Textarea
-                        value={scenarioAnswers[q.id] || ""}
-                        onChange={(e) => setScenarioAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
-                        rows={6}
-                        className="text-sm"
-                        placeholder="Describe your approach..."
-                      />
-                    </CardContent>
-                  </Card>
-                ))}
-              </TabsContent>
-            </Tabs>
-          </div>
-        )}
-
-        {/* Test Results */}
-        {submitted && testEvaluation && mockTest && (
-          <TestResults evaluation={testEvaluation} mockTest={mockTest} mcqAnswers={mcqAnswers} onRetake={() => { setSubmitted(false); setTestEvaluation(null); setMockTest(null) }} />
-        )}
-        </main>
-      </div>
-      </AuthWrapper>
-  )
-}
-
-function TestResults({
-  evaluation,
-  mockTest,
-  mcqAnswers,
-  onRetake,
-}: {
-  evaluation: TestEvaluation
-  mockTest: MockTest
-  mcqAnswers: Record<string, number>
-  onRetake: () => void
-}) {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-foreground">Test Results</h2>
-        <Button variant="outline" onClick={onRetake}>
-          Take Another Test
-        </Button>
-      </div>
-
-      {/* Overall Score */}
-      <Card>
-        <CardContent className="py-8">
-          <div className="flex flex-col items-center">
-            <div className={`flex h-32 w-32 items-center justify-center rounded-full border-4 ${
-              evaluation.totalScore >= 70
-                ? "border-emerald-300 bg-emerald-50"
-                : evaluation.totalScore >= 50
-                  ? "border-amber-300 bg-amber-50"
-                  : "border-red-300 bg-red-50"
-            }`}>
-              <div className="text-center">
-                <Trophy className={`mx-auto h-6 w-6 ${
-                  evaluation.totalScore >= 70 ? "text-emerald-600" : evaluation.totalScore >= 50 ? "text-amber-600" : "text-red-600"
-                }`} />
-                <span className={`text-3xl font-bold ${
-                  evaluation.totalScore >= 70 ? "text-emerald-600" : evaluation.totalScore >= 50 ? "text-amber-600" : "text-red-600"
-                }`}>
-                  {evaluation.totalScore}
-                </span>
-                <span className="text-xs text-muted-foreground">/100</span>
-              </div>
-            </div>
-            <p className="mt-3 text-lg font-semibold text-foreground">Overall Score</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Section Scores */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {[
-          { label: "MCQ", score: evaluation.mcqScore, icon: BookOpen },
-          { label: "Coding", score: evaluation.codingScore, icon: Code },
-          { label: "Scenario", score: evaluation.scenarioScore, icon: MessageSquare },
-        ].map((s) => (
-          <Card key={s.label}>
-            <CardContent className="py-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <s.icon className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">{s.label}</p>
-                  <p className="text-xl font-bold text-foreground">{s.score}/100</p>
-                </div>
-              </div>
-              <Progress value={s.score} className="mt-2 h-2" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Topic Performance */}
-      {evaluation.topicPerformance.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Topic Performance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {evaluation.topicPerformance.map((t, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="w-28 text-sm font-medium text-foreground">{t.topic}</div>
-                  <div className="flex-1">
-                    <Progress value={t.score} className="h-2" />
+                    </div>
                   </div>
-                  <span className="w-12 text-right text-sm font-medium text-muted-foreground">
-                    {t.score}%
-                  </span>
-                  <Badge variant="secondary" className="text-xs">
-                    {t.strength}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* MCQ Answers Review */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">MCQ Answer Review</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {mockTest.mcqs.map((q, i) => {
-              const userAnswer = mcqAnswers[q.id]
-              const correct = userAnswer === q.correctAnswer
-              return (
-                <div key={q.id} className={`rounded-md border p-3 ${correct ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}>
-                  <div className="flex items-start gap-2">
-                    {correct ? (
-                      <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                    ) : (
-                      <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                    )}
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        Q{i + 1}. {q.question}
-                      </p>
-                      {!correct && (
-                        <p className="mt-1 text-xs text-emerald-700">
-                          Correct: {q.options[q.correctAnswer]}
-                        </p>
-                      )}
-                      <p className="mt-1 text-xs text-muted-foreground">{q.explanation}</p>
+                  <div className="flex flex-col gap-4">
+                    <Label className="flex flex-col flex-1 gap-2">
+                      <span className="text-slate-700 dark:text-slate-300 text-base font-semibold">Question Count</span>
+                      <Select value={questionCount} onValueChange={setQuestionCount}>
+                        <SelectTrigger className="w-full h-14 bg-slate-50 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700 text-base">
+                          <SelectValue placeholder="Select count" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="10">10 Questions (Quick practice)</SelectItem>
+                          <SelectItem value="20">20 Questions (Standard test)</SelectItem>
+                          <SelectItem value="50">50 Questions (Comprehensive)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Label>
+                    <div className="mt-auto">
+                      <Button
+                        onClick={generateTest}
+                        disabled={!targetRole}
+                        className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-14 rounded-lg flex items-center justify-center gap-2 transition-transform active:scale-[0.98] text-base"
+                      >
+                        <Bolt className="w-5 h-5 fill-current" />
+                        Generate Test with AI
+                      </Button>
                     </div>
                   </div>
                 </div>
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
+              </div>
+            </section>
+          )}
 
-      {/* Improvements */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {evaluation.improvements.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Areas for Improvement</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {evaluation.improvements.map((imp, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-foreground">
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-                    {imp}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
+          {/* SECTION 2: LOADING STATE */}
+          {step === 'loading' && (
+            <section className="mb-12 animate-in fade-in zoom-in-95 duration-500">
+              <div className="bg-white dark:bg-zinc-900 rounded-xl p-12 border border-slate-200 dark:border-zinc-800 flex flex-col items-center justify-center text-center">
+                <div className="relative w-20 h-20 mb-6">
+                  <div className="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+                  <div className="absolute inset-0 border-4 border-primary rounded-full border-t-transparent animate-spin"></div>
+                  <div className="absolute inset-0 flex items-center justify-center text-primary">
+                    <Sparkles className="w-8 h-8" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold mb-2">AI is curating your test...</h3>
+                <p className="text-slate-500 max-w-sm">Generating {questionCount} {seniority} {targetRole} questions based on current industry standards and documentation.</p>
+                <div className="w-full max-w-md bg-slate-100 dark:bg-zinc-800 h-2 rounded-full mt-8 overflow-hidden">
+                  <div className="bg-primary h-full w-[65%] animate-pulse"></div>
+                </div>
+              </div>
+            </section>
+          )}
 
-        {evaluation.learningPriorities.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Learning Priorities</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ol className="space-y-2">
-                {evaluation.learningPriorities.map((lp, i) => (
-                  <li key={i} className="flex gap-3 text-sm">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
-                      {i + 1}
+          {/* SECTION 3: ACTIVE TEST STATE */}
+          {step === 'active' && currentQuestion && (
+            <section className="mb-12 animate-in slide-in-from-right-8 duration-500">
+              <div className="flex flex-col sm:flex-row items-center justify-between mb-6 bg-white dark:bg-zinc-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-zinc-800 gap-4 sm:gap-0">
+                <div className="flex items-center gap-4">
+                  <Timer className="text-slate-400 w-6 h-6" />
+                  <div className="text-xl font-mono font-bold text-slate-700 dark:text-slate-200">
+                    {formatTime(timeLeft)}
+                  </div>
+                </div>
+                <div className="flex-1 max-w-md px-10 hidden sm:block">
+                  <div className="flex justify-between mb-1 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <span>Progress</span>
+                    <span>Question {currentQuestionIndex + 1} of {allQuestions.length}</span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-zinc-800 h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-primary h-full transition-all duration-300"
+                      style={{ width: `${((currentQuestionIndex + 1) / allQuestions.length) * 100}%` }}
+                    />
+                  </div>
+                </div>
+                <Button variant="destructive" onClick={() => submitTest()} disabled={evaluating} className="bg-red-50 hover:bg-red-100 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30">
+                  {evaluating ? "Submitting..." : "End Session"}
+                </Button>
+              </div>
+
+              <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-slate-200 dark:border-zinc-800 overflow-hidden">
+                <div className="p-4 sm:p-8">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-4 mb-8">
+                    <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap w-fit">
+                      {currentQuestion.type}
                     </span>
-                    <span className="text-foreground">{lp}</span>
-                  </li>
-                ))}
-              </ol>
-            </CardContent>
-          </Card>
-        )}
+                    <h3 className="text-xl sm:text-2xl font-bold leading-relaxed">{currentQuestion.question}</h3>
+                  </div>
+
+                  <div className="mb-10 min-h-[300px]">
+                    {/* MCQ Layout */}
+                    {currentQuestion.type === 'mcq' && (
+                      <div className="space-y-4">
+                        {(currentQuestion as any).options.map((opt: string, i: number) => (
+                          <label
+                            key={i}
+                            className={cn(
+                              "flex items-center p-5 rounded-xl border-2 cursor-pointer transition-all group",
+                              getAnswer() === i.toString()
+                                ? "border-primary bg-primary/5"
+                                : "border-slate-100 dark:border-zinc-800 hover:border-primary/50"
+                            )}
+                          >
+                            <input
+                              type="radio"
+                              name={`q-${currentQuestion.id}`}
+                              className="w-5 h-5 text-primary border-slate-300 focus:ring-primary"
+                              checked={getAnswer() === i.toString()}
+                              onChange={() => handleAnswer(i)}
+                            />
+                            <span className={cn(
+                              "ml-4 font-medium",
+                              getAnswer() === i.toString()
+                                ? "text-slate-900 dark:text-white font-bold"
+                                : "text-slate-700 dark:text-slate-300"
+                            )}>{opt}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Coding/Scenario Layout */}
+                    {(currentQuestion.type === 'coding' || currentQuestion.type === 'scenario') && (
+                      <textarea
+                        className="w-full h-64 p-4 rounded-xl border-2 border-slate-100 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 focus:border-primary focus:ring-primary font-mono text-sm resize-none"
+                        placeholder={currentQuestion.type === 'coding' ? "Write your code solution here..." : "Describe your approach..."}
+                        value={getAnswer()}
+                        onChange={(e) => handleAnswer(e.target.value)}
+                      />
+                    )}
+                  </div>
+
+                  <div className="flex flex-col-reverse sm:flex-row items-center justify-between pt-6 border-t border-slate-100 dark:border-zinc-800 gap-4 sm:gap-0">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                      disabled={currentQuestionIndex === 0}
+                      className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:hover:text-white font-bold w-full sm:w-auto"
+                    >
+                      <ArrowLeft className="w-5 h-5" /> Previous
+                    </Button>
+                    <div className="flex flex-col-reverse sm:flex-row gap-4 w-full sm:w-auto">
+                      <Button variant="outline" className="hidden sm:flex font-bold hover:bg-slate-50 dark:hover:bg-zinc-800">
+                        Mark for Review
+                      </Button>
+                      {currentQuestionIndex < allQuestions.length - 1 ? (
+                        <Button
+                          onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
+                          className="w-full sm:w-auto px-8 bg-primary text-white font-bold hover:bg-primary/90 shadow-md shadow-primary/20"
+                        >
+                          Next Question
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={submitTest}
+                          disabled={evaluating}
+                          className="w-full sm:w-auto px-8 bg-primary text-white font-bold hover:bg-primary/90 shadow-md shadow-primary/20"
+                        >
+                          Finish Test
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* SECTION 4: POST-TEST STATE */}
+          {/* Detailed Results with Answer Review */}
+          {step === 'results' && testEvaluation && mockTest && (
+            <section className="mb-12 animate-in zoom-in-95 duration-500" id="test-results">
+              <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4 sm:gap-0">
+                <h2 className="text-2xl sm:text-3xl font-black">Performance Analytics</h2>
+                <div className="flex gap-3 w-full sm:w-auto">
+                  <Button variant="outline" className="flex-1 sm:flex-initial gap-2" onClick={downloadPDF}>
+                    <Download className="w-4 h-4" /> PDF Report
+                  </Button>
+                  <Button className="flex-1 sm:flex-initial gap-2 bg-primary shadow-md shadow-primary/20" onClick={shareScore}>
+                    <Share2 className="w-4 h-4" /> Share Score
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Score Summary Card */}
+                <div className="bg-white dark:bg-zinc-900 rounded-xl p-8 border border-slate-200 dark:border-zinc-800 shadow-sm flex flex-col items-center text-center">
+                  <div className="relative w-40 h-40 flex items-center justify-center mb-6">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle className="text-slate-100 dark:text-zinc-800" cx="80" cy="80" fill="transparent" r="70" stroke="currentColor" strokeWidth="12"></circle>
+                      <circle
+                        className={cn(
+                          testEvaluation.totalScore >= 70 ? "text-green-500" : testEvaluation.totalScore >= 40 ? "text-amber-500" : "text-red-500"
+                        )}
+                        cx="80" cy="80" fill="transparent" r="70" stroke="currentColor"
+                        strokeDasharray="440"
+                        strokeDashoffset={440 - (440 * testEvaluation.totalScore) / 100}
+                        strokeLinecap="round" strokeWidth="12"
+                      ></circle>
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-4xl font-black text-slate-900 dark:text-white">{testEvaluation.totalScore}%</span>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Score</span>
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold mb-1">
+                    {testEvaluation.totalScore >= 80 ? "Excellent Work!" : testEvaluation.totalScore >= 60 ? "Good Job!" : "Needs Improvement"}
+                  </h3>
+                  <p className="text-slate-500 text-sm mb-6">Based on your performance in {mockTest?.role}</p>
+
+                  <div className="grid grid-cols-3 w-full gap-4 border-t border-slate-100 dark:border-zinc-800 pt-6">
+                    <div>
+                      <p className="text-lg font-black text-slate-900 dark:text-white">{testEvaluation.mcqScore}%</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">MCQ</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-black text-slate-900 dark:text-white">{testEvaluation.codingScore}%</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">Code</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-black text-slate-900 dark:text-white">{testEvaluation.scenarioScore}%</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">Scenario</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Weak Topics & Recommendations */}
+                <div className="lg:col-span-2 space-y-6">
+                  <div className="bg-white dark:bg-zinc-900 rounded-xl p-6 border border-slate-200 dark:border-zinc-800 shadow-sm">
+                    <h4 className="text-lg font-bold mb-4 flex items-center gap-2">
+                      <TrendingDown className="w-5 h-5 text-amber-500" />
+                      Focus Areas
+                    </h4>
+                    <div className="space-y-4">
+                      {testEvaluation.improvements.slice(0, 3).map((imp, i) => (
+                        <div key={i} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-zinc-800/50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-lg flex items-center justify-center">
+                              <AlertCircle className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-sm text-slate-900 dark:text-white">{imp}</p>
+                              <p className="text-xs text-slate-500">Recommended for review</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-primary/5 dark:bg-primary/10 rounded-xl p-6 border border-primary/20">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center">
+                        <School className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-slate-900 dark:text-white">Ready for more?</h4>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Jump back into your personalized learning path to bridge the gaps.</p>
+                      </div>
+                      <Button onClick={() => setStep('config')} className="bg-primary hover:bg-primary/90 text-white font-bold shadow-lg shadow-primary/20">
+                        New Test
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detailed Answer Review */}
+              <div className="space-y-8 mt-12 bg-white dark:bg-zinc-900 p-4 sm:p-8 rounded-xl border border-slate-200 dark:border-zinc-800">
+                <h3 className="text-xl sm:text-2xl font-bold">Answer Review</h3>
+
+                <Tabs defaultValue="mcq" className="w-full">
+                  <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 mb-6 bg-slate-100 dark:bg-zinc-800 p-1 rounded-xl h-auto">
+                    <TabsTrigger value="mcq" className="rounded-lg font-bold py-2">MCQ Review</TabsTrigger>
+                    <TabsTrigger value="coding" className="rounded-lg font-bold py-2">Coding Review</TabsTrigger>
+                    <TabsTrigger value="scenario" className="rounded-lg font-bold py-2">Scenario Review</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="mcq" className="space-y-4">
+                    {mockTest.mcqs.map((q, i) => {
+                      const userAnswer = mcqAnswers[q.id]
+                      const correct = userAnswer === q.correctAnswer
+                      return (
+                        <div key={q.id} className={cn("p-4 rounded-lg border-2", correct ? "border-green-100 bg-green-50 dark:bg-green-900/10 dark:border-green-900/30" : "border-red-100 bg-red-50 dark:bg-red-900/10 dark:border-red-900/30")}>
+                          <div className="flex gap-3">
+                            {correct ? <CheckCircle className="w-6 h-6 text-green-600" /> : <XCircle className="w-6 h-6 text-red-600" />}
+                            <div className="flex-1">
+                              <p className="font-bold text-slate-900 dark:text-white mb-2">Q{i + 1}. {q.question}</p>
+                              <div className="space-y-1 text-sm">
+                                <p><span className="font-semibold">Your Answer:</span> {q.options[userAnswer] || "Skipped"}</p>
+                                {!correct && <p className="text-green-700 dark:text-green-400"><span className="font-semibold">Correct Answer:</span> {q.options[q.correctAnswer]}</p>}
+                                <p className="text-slate-500 mt-2 bg-white dark:bg-black/20 p-2 rounded">💡 {q.explanation}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </TabsContent>
+
+                  <TabsContent value="coding" className="space-y-6">
+                    {mockTest.codingQuestions.map((q, i) => (
+                      <div key={q.id} className="p-6 rounded-xl border border-slate-200 dark:border-zinc-800">
+                        <div className="flex justify-between items-start mb-4">
+                          <h4 className="font-bold text-lg">Q{i + 1}. {q.question}</h4>
+                          <Badge>{q.difficulty}</Badge>
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <div className="p-4 bg-slate-50 dark:bg-zinc-800 rounded-lg">
+                            <span className="text-xs font-bold uppercase text-slate-400 mb-2 block">Expected Approach</span>
+                            <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{q.expectedApproach}</p>
+                          </div>
+                          <div className="p-4 bg-slate-950 text-slate-50 rounded-lg font-mono text-sm overflow-x-auto">
+                            <span className="text-xs font-bold uppercase text-slate-500 mb-2 block">Sample Solution</span>
+                            <pre>{q.sampleSolution}</pre>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </TabsContent>
+
+                  <TabsContent value="scenario" className="space-y-6">
+                    {mockTest.scenarioQuestions.map((q, i) => (
+                      <div key={q.id} className="p-6 rounded-xl border border-slate-200 dark:border-zinc-800">
+                        <h4 className="font-bold text-lg mb-4">Q{i + 1}. {q.question}</h4>
+                        <div className="bg-slate-50 dark:bg-zinc-800 p-5 rounded-lg">
+                          <h5 className="font-bold text-sm mb-2 text-primary">Key Evaluation Criteria</h5>
+                          <ul className="list-disc list-inside space-y-1 text-sm text-slate-700 dark:text-slate-300">
+                            {q.evaluationCriteria.map((c, ci) => (
+                              <li key={ci}>{c}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="mt-4">
+                          <h5 className="font-bold text-sm mb-2">Expected Answer Strategy</h5>
+                          <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{q.expectedAnswer}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </section>
+          )}
+
+        </main>
       </div>
-    </div>
-    
+    </AuthWrapper>
   )
 }
+
