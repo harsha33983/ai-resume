@@ -123,6 +123,8 @@ export interface TemplateConfig {
   headerVariant?: "default" | "centered" | "split" | "banner" | "modern"
   backgroundImage?: string
   decoration?: "none" | "geometric" | "minimal" | "gradient"
+  skillsStyle?: "pill" | "comma-separated"
+  projectLinkStyle?: "url" | "live-demo"
 }
 
 // ========== Analysis Results ==========

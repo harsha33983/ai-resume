@@ -2,6 +2,7 @@
 
 import { useStore } from "@/lib/store"
 import { templates, defaultResumeData } from "@/lib/templates"
+import type { ResumeData } from "@/lib/types"
 import { AppNav } from "@/components/app-nav"
 import { ResumeRenderer } from "@/components/builder/resume-renderer"
 import { Button } from "@/components/ui/button"
@@ -98,7 +99,7 @@ const sampleData = {
     },
   ],
   customSections: [],
-}
+} as unknown as ResumeData
 
 export default function TemplatesPage() {
   const store = useStore()
@@ -129,9 +130,8 @@ export default function TemplatesPage() {
             return (
               <Card
                 key={template.id}
-                className={`overflow-hidden transition-all hover:shadow-md ${
-                  isSelected ? "ring-2 ring-primary" : ""
-                }`}
+                className={`overflow-hidden transition-all hover:shadow-md ${isSelected ? "ring-2 ring-primary" : ""
+                  }`}
               >
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">

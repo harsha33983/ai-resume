@@ -35,7 +35,33 @@ export default function BuilderPage() {
   const [analyzing, setAnalyzing] = useState(false)
   const [recommending, setRecommending] = useState(false)
   const [scale, setScale] = useState(0.55)
+  const [activeTab, setActiveTab] = useState("content")
+  const [activeSections, setActiveSections] = useState<string[]>(["personal", "summary", "skills"])
   const canvasRef = useRef<HTMLDivElement>(null)
+
+  const handleSectionClick = useCallback((section: string) => {
+    setActiveTab("content")
+    setActiveSections((prev) => {
+      if (!prev.includes(section)) {
+        return [...prev, section]
+      }
+      return prev
+    })
+  }, [])
+
+  const handleSectionOrderChange = useCallback(
+    (key: "sectionOrder" | "mainSections" | "sidebarSections", newOrder: string[]) => {
+      setLocalConfig((prev) => ({
+        ...prev,
+        [key === "sectionOrder" ? "sectionOrder" : "layout"]: {
+          ...prev.layout,
+          ...(key !== "sectionOrder" ? { [key]: newOrder } : {}),
+        },
+        ...(key === "sectionOrder" ? { sectionOrder: newOrder } : {}),
+      } as any))
+    },
+    []
+  )
 
   useEffect(() => {
     if (store.resumeData) {
@@ -134,7 +160,7 @@ export default function BuilderPage() {
         <div className="flex flex-1 overflow-hidden">
           {/* Left Panel - Editor */}
           <div className="w-80 shrink-0 border-r border-border lg:w-96">
-            <Tabs defaultValue="content" className="flex h-full flex-col">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex h-full flex-col">
               <TabsList className="mx-2 mt-2 grid w-auto grid-cols-2">
                 <TabsTrigger value="content" className="gap-1.5 text-xs">
                   <FileText className="h-3.5 w-3.5" />
@@ -147,7 +173,12 @@ export default function BuilderPage() {
               </TabsList>
               <TabsContent value="content" className="flex-1 overflow-hidden">
                 <ScrollArea className="h-full">
-                  <EditorPanels data={localData} onChange={setLocalData} />
+                  <EditorPanels
+                    data={localData}
+                    onChange={setLocalData}
+                    activeSections={activeSections}
+                    onActiveSectionsChange={setActiveSections}
+                  />
                 </ScrollArea>
               </TabsContent>
               <TabsContent value="style" className="flex-1 overflow-hidden">
@@ -178,8 +209,16 @@ export default function BuilderPage() {
               <span className="text-xs text-muted-foreground">{Math.round(scale * 100)}%</span>
             </div>
             <div className="flex justify-center">
-              <div ref={canvasRef} className="print-resume">
-                <ResumeRenderer data={localData} config={localConfig} scale={scale} />
+              <div ref={canvasRef} className="print-resume cursor-pointer">
+                <ResumeRenderer
+                  data={localData}
+                  config={localConfig}
+                  scale={scale}
+                  isEditable={true}
+                  activeSection={activeSections[activeSections.length - 1]}
+                  onSectionClick={handleSectionClick}
+                  onSectionOrderChange={handleSectionOrderChange}
+                />
               </div>
             </div>
 

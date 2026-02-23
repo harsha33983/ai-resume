@@ -387,6 +387,35 @@ export const templates: TemplateConfig[] = [
       skills: true, education: true, certifications: true, custom: true,
     },
   },
+  {
+    id: "classic-serif",
+    name: "Classic Serif / Academic",
+    description: "Traditional resume format with serif typography. Features clean, comma-separated skills and elegant 'Live Demo' links.",
+    category: "Business",
+    hasPhoto: false,
+    headerVariant: "centered",
+    skillsStyle: "comma-separated",
+    projectLinkStyle: "live-demo",
+    fontFamily: "'Times New Roman', Times, serif",
+    headingFont: "'Times New Roman', Times, serif",
+    fontSize: { name: 32, heading: 16, subheading: 14, body: 12, small: 11 },
+    spacing: { sectionGap: 14, itemGap: 10, lineHeight: 1.4 },
+    colors: {
+      primary: "#000000",
+      secondary: "#333333",
+      accent: "#000000",
+      text: "#1a1a1a",
+      background: "#ffffff",
+      heading: "#000000",
+      border: "#cccccc",
+    },
+    layout: { columns: 1 },
+    sectionOrder: ["header", "summary", "projects", "education", "skills", "certifications", "experience", "custom"],
+    sectionVisibility: {
+      header: true, summary: true, experience: true, projects: true,
+      skills: true, education: true, certifications: true, custom: true,
+    },
+  },
 ]
 
 export function getTemplate(id: string): TemplateConfig {

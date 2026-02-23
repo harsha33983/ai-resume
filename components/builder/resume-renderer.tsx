@@ -3,16 +3,29 @@
 import React from "react"
 
 import type { ResumeData, TemplateConfig, BlockType, SkillCategory } from "@/lib/types"
-import { Mail, Phone, MapPin, Linkedin, Github, Globe } from "lucide-react"
+import { Mail, Phone, MapPin, Linkedin, Github, Globe, GripVertical } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Reorder } from "framer-motion"
 
 interface Props {
   data: ResumeData
   config: TemplateConfig
   scale?: number
+  isEditable?: boolean
+  activeSection?: string
+  onSectionClick?: (section: string) => void
+  onSectionOrderChange?: (key: "sectionOrder" | "mainSections" | "sidebarSections", newOrder: string[]) => void
 }
 
-export function ResumeRenderer({ data, config, scale = 1 }: Props) {
+export function ResumeRenderer({
+  data,
+  config,
+  scale = 1,
+  isEditable = false,
+  activeSection,
+  onSectionClick,
+  onSectionOrderChange
+}: Props) {
   const styles = {
     fontFamily: config.fontFamily,
     fontSize: `${config.fontSize.body}px`,
@@ -73,7 +86,20 @@ export function ResumeRenderer({ data, config, scale = 1 }: Props) {
                     {proj.name}
                   </p>
                   {proj.link && (
-                    <span style={{ fontSize: `${config.fontSize.small}px`, color: config.colors.accent }}>{proj.link}</span>
+                    config.projectLinkStyle === "live-demo" ? (
+                      <a
+                        href={proj.link.startsWith('http') ? proj.link : `https://${proj.link}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 hover:underline ml-2"
+                        style={{ fontSize: `${config.fontSize.small}px`, color: config.colors.text }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                        Live Demo
+                      </a>
+                    ) : (
+                      <span style={{ fontSize: `${config.fontSize.small}px`, color: config.colors.accent }}>{proj.link}</span>
+                    )
                   )}
                 </div>
                 {proj.description && (
@@ -103,37 +129,50 @@ export function ResumeRenderer({ data, config, scale = 1 }: Props) {
 
         return categories.length > 0 ? (
           <SectionWrapper key="skills" title="Skills" config={config}>
-            <div className="space-y-3">
+            <div className={config.skillsStyle === "comma-separated" ? "space-y-1" : "space-y-3"}>
               {categories.map((cat, i) => (
-                <div key={i}>
-                  {cat.name && (
-                    <h4
-                      style={{
-                        fontSize: `${config.fontSize.subheading}px`,
-                        fontWeight: 600,
-                        color: config.colors.secondary,
-                        marginBottom: 4,
-                      }}
-                    >
-                      {cat.name}
-                    </h4>
+                <div key={i} className={config.skillsStyle === "comma-separated" ? "text-justify" : ""}>
+                  {config.skillsStyle === "comma-separated" ? (
+                    <p style={{ fontSize: `${config.fontSize.body}px`, color: config.colors.text }}>
+                      {cat.name && (
+                        <span style={{ fontWeight: 700, color: config.colors.heading, marginRight: 6 }}>
+                          {cat.name}:
+                        </span>
+                      )}
+                      {cat.items.join(", ")}
+                    </p>
+                  ) : (
+                    <>
+                      {cat.name && (
+                        <h4
+                          style={{
+                            fontSize: `${config.fontSize.subheading}px`,
+                            fontWeight: 600,
+                            color: config.colors.secondary,
+                            marginBottom: 4,
+                          }}
+                        >
+                          {cat.name}
+                        </h4>
+                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {cat.items.map((skill: string, si: number) => (
+                          <span
+                            key={si}
+                            className="inline-block rounded px-1.5 py-0.5"
+                            style={{
+                              fontSize: `${config.fontSize.small}px`,
+                              backgroundColor: `${config.colors.accent}15`,
+                              color: config.colors.accent,
+                              border: `1px solid ${config.colors.accent}30`,
+                            }}
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </>
                   )}
-                  <div className="flex flex-wrap gap-1">
-                    {cat.items.map((skill: string, si: number) => (
-                      <span
-                        key={si}
-                        className="inline-block rounded px-1.5 py-0.5"
-                        style={{
-                          fontSize: `${config.fontSize.small}px`,
-                          backgroundColor: `${config.colors.accent}15`,
-                          color: config.colors.accent,
-                          border: `1px solid ${config.colors.accent}30`,
-                        }}
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
                 </div>
               ))}
             </div>
@@ -188,6 +227,39 @@ export function ResumeRenderer({ data, config, scale = 1 }: Props) {
   }
 
   const renderContent = () => {
+    const renderDraggableBlock = (section: BlockType) => {
+      if (!config.sectionVisibility[section]) return null
+
+      if (!isEditable || section === "header") {
+        return <div key={section} onClick={() => isEditable && onSectionClick?.(section)} className={cn(isEditable && "cursor-pointer")}>{renderBlock(section)}</div>
+      }
+
+      const isActive = activeSection === section
+
+      return (
+        <Reorder.Item
+          key={section}
+          value={section}
+          onClick={(e) => {
+            e.stopPropagation()
+            onSectionClick?.(section)
+          }}
+          className={cn(
+            "relative rounded-md transition-all border border-transparent select-none",
+            isActive && "ring-2 ring-primary bg-muted/20 border-border z-10 print:ring-0 print:bg-transparent print:border-transparent",
+            !isActive && "hover:border-dashed hover:border-muted-foreground/50 hover:bg-muted/10 cursor-pointer print:hover:border-transparent print:hover:bg-transparent"
+          )}
+        >
+          {isActive && (
+            <div className="absolute -top-3 -right-3 rounded-full bg-primary text-primary-foreground p-1.5 shadow-md cursor-grab active:cursor-grabbing flex items-center justify-center print:hidden">
+              <GripVertical className="h-3 w-3" />
+            </div>
+          )}
+          {renderBlock(section)}
+        </Reorder.Item>
+      )
+    }
+
     if (config.layout.columns === 2) {
       const sidebarSections = config.layout.sidebarSections || []
       const mainSections = config.layout.mainSections || []
@@ -195,19 +267,31 @@ export function ResumeRenderer({ data, config, scale = 1 }: Props) {
 
       const sidebar = (
         <div className="space-y-2" style={{ width: "35%" }}>
-          {sidebarSections.map(renderBlock)}
+          {isEditable ? (
+            <Reorder.Group axis="y" values={sidebarSections} onReorder={(newOrder) => onSectionOrderChange?.("sidebarSections", newOrder as BlockType[])} className="space-y-2 h-full">
+              {sidebarSections.map(renderDraggableBlock)}
+            </Reorder.Group>
+          ) : (
+            sidebarSections.map(renderBlock)
+          )}
         </div>
       )
 
       const main = (
         <div className="space-y-2" style={{ flex: 1 }}>
-          {mainSections.map(renderBlock)}
+          {isEditable ? (
+            <Reorder.Group axis="y" values={mainSections} onReorder={(newOrder) => onSectionOrderChange?.("mainSections", newOrder as BlockType[])} className="space-y-2 h-full">
+              {mainSections.map(renderDraggableBlock)}
+            </Reorder.Group>
+          ) : (
+            mainSections.map(renderBlock)
+          )}
         </div>
       )
 
       return (
         <div>
-          {renderBlock("header")}
+          {renderDraggableBlock("header")}
           <div className="flex gap-4" style={{ marginTop: `${config.spacing.sectionGap}px` }}>
             {isLeft ? (
               <>
@@ -225,9 +309,18 @@ export function ResumeRenderer({ data, config, scale = 1 }: Props) {
       )
     }
 
+    const reorderableSections = config.sectionOrder.filter(s => s !== "header")
+
     return (
       <div className="space-y-1">
-        {config.sectionOrder.map(renderBlock)}
+        {renderDraggableBlock("header")}
+        {isEditable ? (
+          <Reorder.Group axis="y" values={reorderableSections} onReorder={(newOrder) => onSectionOrderChange?.("sectionOrder", ["header", ...newOrder] as BlockType[])} className="space-y-1">
+            {reorderableSections.map(renderDraggableBlock)}
+          </Reorder.Group>
+        ) : (
+          reorderableSections.map(renderBlock)
+        )}
       </div>
     )
   }

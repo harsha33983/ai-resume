@@ -18,12 +18,20 @@ import { toast } from "sonner"
 interface Props {
   data: ResumeData
   onChange: (data: ResumeData) => void
+  activeSections?: string[]
+  onActiveSectionsChange?: (sections: string[]) => void
 }
 
-export function EditorPanels({ data, onChange }: Props) {
+export function EditorPanels({ data, onChange, activeSections, onActiveSectionsChange }: Props) {
   return (
     <div className="space-y-2 p-4">
-      <Accordion type="multiple" defaultValue={["personal", "summary", "skills"]} className="space-y-2">
+      <Accordion
+        type="multiple"
+        value={activeSections}
+        onValueChange={onActiveSectionsChange}
+        defaultValue={["personal", "summary", "skills"]}
+        className="space-y-2"
+      >
         <PersonalSection data={data} onChange={onChange} />
         <SummarySection data={data} onChange={onChange} />
         <SkillsSection data={data} onChange={onChange} />
